@@ -8,34 +8,33 @@ from collections import namedtuple
 from pipeline import ensemble_predict
 tfd = tfp.distributions
 
-PI_bound = namedtuple('PI_bound', ['ensembleAverage', 'lowerBound', 'upperBound', 'mean', 'std'])
+PI_bound = namedtuple(
+    'PI_bound', ['ensembleAverage', 'lowerBound', 'upperBound', 'mean', 'std'])
 CI95_metrics = namedtuple("CI95_metrics", ["PI_2p5", "PI_97p5", "PI_median"])
 
+
 class EnsemblePredict():
-    
+
     def __init__(self, ensemble_size, test_features, test_labels):
         self.ensemble_size = ensemble_size
         self.test_features = test_features
         self.gt = test_labels
 
-    
     def mc_predict_test_set(self, model):
 
         self.enPred_WholeTestSet = ensemble_predict(
-            model=model, 
-            test_data = self.test_features, 
+            model=model,
+            test_data=self.test_features,
             ensemble_size=self.ensemble_size)
-
 
     def pl_epistemic(self, val_x_axis):
         """ plot epistemic uncertainty of the whole test set """
-        
-        pl_preds_uncertainty(
-            x_axis=val_x_axis, 
-            predictions=self.enPred_WholeTestSet, 
-            ground_truth=self.gt, 
-            option='CI95')
 
+        pl_preds_uncertainty(
+            x_axis=val_x_axis,
+            predictions=self.enPred_WholeTestSet,
+            ground_truth=self.gt,
+            option='CI95')
 
     def pl_residual_B(self, low=2, limit=4):
 
@@ -47,54 +46,50 @@ class EnsemblePredict():
         ax.plot(np.arange(low, limit, 0.01), np.arange(
             low, limit, 0.01), color='gray', ls='--')
 
-
         error = np.std(self.enPred_WholeTestSet, axis=0)
-        ax.errorbar(mean, self.gt,  xerr=error, fmt='none', ecolor='blue', alpha=0.5)
+        ax.errorbar(mean, self.gt,  xerr=error,
+                    fmt='none', ecolor='blue', alpha=0.5)
         ax.set_xlabel('Predicted revenue in million')
         ax.set_ylabel('Ground truth revenue in million')
-
 
     def cp_ensemble_metrics(self,):
         """ compute the uncertainty metrics for val data set"""
 
         # compute the  MAE
         MAEs = tf.keras.metrics.mean_absolute_error(
-            y_true = self.gt, y_pred=self.enPred_WholeTestSet)
-        
+            y_true=self.gt, y_pred=self.enPred_WholeTestSet)
+
         MAPEs = tf.keras.metrics.mean_absolute_percentage_error(
-            y_true=self.gt, 
+            y_true=self.gt,
             y_pred=self.enPred_WholeTestSet)
 
         mae = np.mean(MAEs)
         mape = np.mean(MAPEs)
-        return mae, mape   
-
-
+        return mae, mape
 
     def pl_epistemic_ts(self, dataset):
         """ plot epistemic uncertainty of the whole test set """
-        
+
         fig, ax = plt.subplots(figsize=(12, 4))
 
-        # plot the full train and val [revenue] series 
+        # plot the full train and val [revenue] series
         ax.plot(dataset.revenue, marker='+')
 
         # boundry between train and val
         ax.axvline(x=200, ymin=0, ymax=1, color='purple', linestyle='--')
 
-
         # plot the val results
         val_x_axis = np.arange(200, 208)
 
-        # add the ground truth 
+        # add the ground truth
         ax.scatter(val_x_axis, self.gt, color='r', marker='o', )
 
         CI95_metric = CI95_interval(self.enPred_WholeTestSet)
 
-        # the ensemble median 
+        # the ensemble median
         # ax.plot(val_x_axis, CI95_metric.PI_median, color='red', label='ensemble median')
 
-        ax.fill_between(val_x_axis, 
+        ax.fill_between(val_x_axis,
                         CI95_metric.PI_2p5,
                         CI95_metric.PI_97p5,
                         color='coral',
@@ -104,32 +99,30 @@ class EnsemblePredict():
         ax.grid(linestyle=':')
         ax.set_ylabel('Revenue in million')
         ax.set_title('Epistemic uncertainty')
-        ax.set_xlim([160,208])
-
-
+        ax.set_xlim([160, 208])
 
     def mixed_uncertainty_PI(self, dataset, PI_dp_bounds_all_list, val_x_axis):
         """ plot epistemic uncertainty of the whole test set """
-        
+
         fig, ax = plt.subplots(figsize=(12, 4))
 
-        # plot the full train and val [revenue] series 
+        # plot the full train and val [revenue] series
         ax.plot(dataset.revenue, marker='+')
 
         # boundry between train and val
         ax.axvline(x=200, ymin=0, ymax=1, color='purple', linestyle='--')
 
-        # add the ground truth 
+        # add the ground truth
         ax.scatter(val_x_axis, self.gt, color='r', marker='o', )
 
         mean_curve = np.array([x.mean[0] for x in PI_dp_bounds_all_list])
         lb_curve = np.array([x.lowerBound[0] for x in PI_dp_bounds_all_list])
         ub_curve = np.array([x.upperBound[0] for x in PI_dp_bounds_all_list])
 
-        # the ensemble median 
+        # the ensemble median
         ax.plot(val_x_axis, mean_curve, color='red', label='ensemble mean')
 
-        ax.fill_between(val_x_axis, 
+        ax.fill_between(val_x_axis,
                         lb_curve,
                         ub_curve,
                         color='coral',
@@ -138,14 +131,7 @@ class EnsemblePredict():
         ax.legend(loc='best')
         ax.grid(linestyle=':')
         ax.set_title('Mixed uncertainty - both aleatoric and epistemic')
-        ax.set_xlim([160,208])
-
-
-
-
-
-
-
+        ax.set_xlim([160, 208])
 
     def cp_ensemble_testset(self, model):
         """ compute the tfd distribution objects (with mean and stddev) for all the data points
@@ -154,46 +140,43 @@ class EnsemblePredict():
         # compute the ensemble dist for all data points
         for i in tqdm.tqdm(range(len(self.gt))):
             dp_dist_result = cp_ensemble_dp(
-                model=model, 
+                model=model,
                 input_dp=self.test_features[i][np.newaxis],
                 ensemble_size=self.ensemble_size)
             container.append(dp_dist_result)
-        self._dist_obj_testset =  container
-
+        self._dist_obj_testset = container
 
     def get_PI_bounds_testset(self, style='gmm'):
         """ choose a PI bound style and get these bounds for the whole test set 
         ! the current entry point 
-        
+
         Parameters
         ----------
         style : str,
             two choices: 'gmm' and 'envelop'
         """
-        
+
         # if not hasattr(self, '_dist_obj_testset'):
         #     self.cp_ensemble_testset()
 
-        PI_dp_bounds_all_list = [cp_dp_PI_bound(ensemble_dp_dist, style=style) for ensemble_dp_dist in self._dist_obj_testset]
+        PI_dp_bounds_all_list = [cp_dp_PI_bound(
+            ensemble_dp_dist, style=style) for ensemble_dp_dist in self._dist_obj_testset]
         return PI_dp_bounds_all_list
-
 
     def cp_d_metrics(self,):
         """ compute the deterministic metrics for val data set"""
 
-                # compute the  MAE
+        # compute the  MAE
         MAEs = tf.keras.metrics.mean_absolute_error(
-            y_true = self.gt, y_pred=self.enPred_WholeTestSet)
-        
+            y_true=self.gt, y_pred=self.enPred_WholeTestSet)
+
         mape = tf.keras.metrics.mean_absolute_percentage_error(
-            y_true=self.gt, 
+            y_true=self.gt,
             y_pred=self.enPred_WholeTestSet)
 
         mae = np.mean(MAEs)
         mape = np.mean(mape)
         return mae, mape
-        
-
 
 
 def show_dist(model):
@@ -207,12 +190,6 @@ def show_dist(model):
     # print('', model_posterior.covariance().numpy()[1])
 
 
-
-
-
-
-
-
 def pl_preds_uncertainty(x_axis, predictions, ground_truth, option):
     """ plot uncertainty of preds on a data point """
 
@@ -224,28 +201,29 @@ def pl_preds_uncertainty(x_axis, predictions, ground_truth, option):
         # median = np.median(predictions, axis=0)
         std = np.std(predictions, axis=0)
 
-        # the ensemble average curve  
+        # the ensemble average curve
         ax.plot(x_axis, mean, 'r:', label='ensemble average')
         # ax.plot(x_axis, median, 'r:', label='ensemble median')
-        ax.fill_between(x_axis, 
-                        mean + 2 * std, 
+        ax.fill_between(x_axis,
+                        mean + 2 * std,
                         mean - 2 * std,
-                        color='salmon', 
-                        alpha=0.3, 
+                        color='salmon',
+                        alpha=0.3,
                         label='mean +- 2 sigma')
-        # 3 * sigma 
-        ax.fill_between(x_axis, 
-                        mean + 3 * std, 
+        # 3 * sigma
+        ax.fill_between(x_axis,
+                        mean + 3 * std,
                         mean - 3 * std,
-                        color='salmon', 
-                        alpha=0.15, 
+                        color='salmon',
+                        alpha=0.15,
                         label='median +- 3 sigma')
     elif option == 'CI95':
         CI95_metric = CI95_interval(predictions)
 
-        # the ensemble median 
-        ax.plot(x_axis, CI95_metric.PI_median, color='red', label='ensemble median')
-        ax.fill_between(x_axis, 
+        # the ensemble median
+        ax.plot(x_axis, CI95_metric.PI_median,
+                color='red', label='ensemble median')
+        ax.fill_between(x_axis,
                         CI95_metric.PI_2p5,
                         CI95_metric.PI_97p5,
                         color='coral',
@@ -253,8 +231,9 @@ def pl_preds_uncertainty(x_axis, predictions, ground_truth, option):
                         label=r'95\%' ' credible interval')
     elif option == 'multi':
         for c, row in enumerate(predictions):
-            if c==0:
-                ax.plot(x_axis, row, 'gray', alpha=0.1, zorder=0, label='prediction')
+            if c == 0:
+                ax.plot(x_axis, row, 'gray', alpha=0.1,
+                        zorder=0, label='prediction')
             else:
                 ax.plot(x_axis, row, 'gray', alpha=0.1, zorder=0)
 
@@ -268,15 +247,6 @@ def pl_preds_uncertainty(x_axis, predictions, ground_truth, option):
 
     ax.legend(frameon=False, loc='upper left', fontsize='small')
     ax.grid(ls=':')
-
-
-
-
-
-
-
-
-
 
 
 def plot_history_info(history_obj, title=''):
@@ -298,7 +268,6 @@ def plot_history_info(history_obj, title=''):
     ax[1].set_xlabel('epochs')
     ax[1].legend()
 
-
     ax[2].plot(history_obj.epoch, history_obj.history[c], label=c)
     ax[2].plot(history_obj.epoch, history_obj.history[f], label=f)
     ax[2].set_ylabel(b)
@@ -310,7 +279,7 @@ def plot_history_info(history_obj, title=''):
 
 def CI95_interval(ensemble_predictions):
     """ compute the 95 credible interval 
-    
+
     Parameters
     ----------
     ensemble_predictions : array
@@ -350,7 +319,6 @@ def cp_ensemble_dp(model, input_dp, ensemble_size):
 
     # each dict element is a `ensembles_size` length of list of arrays, each array in (, 33)
     return {'ensemble_means': means, 'ensemble_stds': stds}
-
 
 
 def cp_dp_PI_bound(ensemble_dp_dist, style='envelop', k=2):
@@ -407,9 +375,3 @@ def cp_dp_PI_bound(ensemble_dp_dist, style='envelop', k=2):
         upper_bound_curve = mean_curve + 2 * std_gmm
 
     return PI_bound(ensembleAverage=mean_curve, lowerBound=lower_bound_curve, upperBound=upper_bound_curve, mean=mean_curve, std=std_gmm)
-
-
-
-
-
-

@@ -6,21 +6,22 @@ import matplotlib.pyplot as plt
 
 def save2Vis(figname):
     """ a shortcut function to save plot to visualization dir 
-    
+
     Note
     ----
-    
+
     We simply assume that every repo will have a 'visulizations' 
     dir under the root directory
     """
-    
+
     axe = plt.gca()
-    plt.savefig(f'visualization/{figname}.pdf', format='pdf', dpi=300, bbox_inches='tight')
+    plt.savefig(f'visualization/{figname}.pdf',
+                format='pdf', dpi=300, bbox_inches='tight')
 
 
 def save_a_plot(fname, save_dir):
     plt.gcf()
-    plt.savefig(fname=os.path.join(save_dir, fname), 
+    plt.savefig(fname=os.path.join(save_dir, fname),
                 dpi=300,
                 format='pdf',
                 bbox_inches='tight')

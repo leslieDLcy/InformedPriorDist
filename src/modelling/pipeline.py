@@ -3,6 +3,7 @@ import numpy as np
 import tensorflow as tf
 from utils import sin_transformer, cos_transformer
 
+
 def import_data(path='data/raw/weekly_media_sample.csv'):
     """ import raw data from csv file into a dataframe """
 
@@ -15,7 +16,7 @@ def import_data(path='data/raw/weekly_media_sample.csv'):
 
 def base_process_data(dataset, split_index=200, normalize=False):
     """ processing operations on the raw data for base models 
-    
+
     Parameters
     ----------
     normalize: bool
@@ -24,9 +25,9 @@ def base_process_data(dataset, split_index=200, normalize=False):
     Note
     ----
         base models are models that do not use time information,
-    """ 
+    """
 
-    # transform `revenue` in millions 
+    # transform `revenue` in millions
     dataset['revenue'] = dataset['revenue'] / 1000000
 
     train_val_split = split_index
@@ -56,25 +57,20 @@ def base_process_data(dataset, split_index=200, normalize=False):
     return train_features, test_features, train_labels, test_labels
 
 
-
-
-
-
-
 def temporal_process_data(dataset, split_index=200):
     """ procedures for temporal models """
 
-    # transform `revenue` in millions 
+    # transform `revenue` in millions
     dataset['revenue'] = dataset['revenue'] / 1000000
 
     # an index axis as `index_time`
     index_time = np.arange(1, len(dataset)+1)
-    
+
     # # a bit feature engineering
     # dataset['month_sin'] = sin_transformer(period=4, x=index_time)
     # dataset['month_cos'] = cos_transformer(period=4, x=index_time)
 
-    dataset['year_sin']  = sin_transformer(period=4*12, x=index_time)
+    dataset['year_sin'] = sin_transformer(period=4*12, x=index_time)
     # dataset['year_cos']  = cos_transformer(period=4*12, x=index_time)
 
     print('Processed dataset shape: ', dataset.shape)
@@ -98,7 +94,7 @@ def temporal_process_data(dataset, split_index=200):
 
 def feature_normalization(train_features):
     """ normalize the feature vector 
-    
+
     Style
     -----
         - use of `Normalization` layer into the model
@@ -119,11 +115,9 @@ def feature_normalization(train_features):
     return normalizer
 
 
-
 def ensemble_predict(model, test_data, ensemble_size):
     """ ensemble prediction and concatenate """
 
-    ensem_preds = [np.squeeze(model.predict(test_data)) for _ in range(ensemble_size)]
+    ensem_preds = [np.squeeze(model.predict(test_data))
+                   for _ in range(ensemble_size)]
     return np.stack(ensem_preds, axis=0)
-
-
