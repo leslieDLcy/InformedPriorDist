@@ -37,6 +37,22 @@ class EnsemblePredict():
             option='CI95')
 
 
+    def pl_residual_B(self, low=2, limit=4):
+
+        mean = np.mean(self.enPred_WholeTestSet, axis=0)
+
+        fig, ax = plt.subplots()
+        ax.scatter(mean, self.gt, color='blue', alpha=0.5)
+
+        ax.plot(np.arange(low, limit, 0.01), np.arange(
+            low, limit, 0.01), color='gray', ls='--')
+
+
+        error = np.std(self.enPred_WholeTestSet, axis=0)
+        ax.errorbar(mean, self.gt,  xerr=error, fmt='none', ecolor='blue', alpha=0.5)
+        ax.set_xlabel('Predicted revenue in million')
+        ax.set_ylabel('Ground truth revenue in million')
+
 
     def cp_ensemble_metrics(self,):
         """ compute the uncertainty metrics for val data set"""
