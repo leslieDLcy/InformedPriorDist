@@ -1,6 +1,7 @@
 
 import tqdm
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -14,8 +15,6 @@ CI95_metrics = namedtuple("CI95_metrics", ["PI_2p5", "PI_97p5", "PI_median"])
 
 # create an universal metric to compare the performance of different models
 acc_metrics = namedtuple('acc_metrics', ['mae', 'mape'])
-
-
 
 
 class EnsemblePredict():
@@ -249,12 +248,6 @@ class AleatoricPredict:
         # ax.set_ylim([0, 6])
 
 
-
-
-
-
-
-
 def show_dist(model):
     dummy_input = np.array([[0]])
     model_prior = model.layers[0]._prior(dummy_input)
@@ -451,3 +444,34 @@ def cp_dp_PI_bound(ensemble_dp_dist, style='envelop', k=2):
         upper_bound_curve = mean_curve + 2 * std_gmm
 
     return PI_bound(ensembleAverage=mean_curve, lowerBound=lower_bound_curve, upperBound=upper_bound_curve, mean=mean_curve, std=std_gmm)
+
+
+def pl_priorNposterior(trace, parameter, prior_obj, low=-2, high=2):
+    """ plot both the prior and posterior distribution of a parameter 
+    
+    parameters
+    ----------
+    trace : pymc3 trace object
+        the trace from which to get posterior samples
+    parameter : str
+        which parameter to plot
+    prior_obj : tfp distribution object
+        Tensorflow probability distribution object as prior with given parameters and type
+    low : float
+        lower bound of the parameter on the x-axis
+    high : float
+        upper bound of the parameter on the x-axis
+    """
+
+    # get the posterior of a parameter (i.e. samples in np array)
+    pos_dist = trace.posterior[parameter].to_numpy()[0]
+
+    # manually create and plot the prior distribution
+
+    # the posterior 
+    fig, ax = plt.subplots()
+    dummy_xaxis = np.linspace(low, high, 100)
+    ax.plot(dummy_xaxis, prior_obj.prob(dummy_xaxis), color='green', label='prior')
+    sns.histplot(x=pos_dist, bins=10, kde=True, stat='density', label='posterior', ax=ax)
+    ax.legend()
+    ax.set_xlabel(f'{parameter}')
