@@ -12,6 +12,11 @@ PI_bound = namedtuple(
     'PI_bound', ['ensembleAverage', 'lowerBound', 'upperBound', 'mean', 'std'])
 CI95_metrics = namedtuple("CI95_metrics", ["PI_2p5", "PI_97p5", "PI_median"])
 
+# create an universal metric to compare the performance of different models
+acc_metrics = namedtuple('acc_metrics', ['mae', 'mape'])
+
+
+
 
 class EnsemblePredict():
 
@@ -65,7 +70,7 @@ class EnsemblePredict():
 
         mae = np.mean(MAEs)
         mape = np.mean(MAPEs)
-        return mae, mape
+        return acc_metrics(mae=mae, mape=mape)
 
     def pl_epistemic_ts(self, dataset):
         """ plot epistemic uncertainty of the whole test set """
@@ -179,6 +184,77 @@ class EnsemblePredict():
         return mae, mape
 
 
+class AleatoricPredict:
+    """ for aleatoric model """
+
+    def __init__(self, test_features, test_labels):
+        self.test_features = test_features
+        self.test_labels = test_labels
+
+
+    def predict_dist(self, model, data=None):
+        """ predict the distribution object """
+
+        if data is None:
+            data = self.test_features
+        
+        # compute the mean of the conditional distribution objects
+        self.conditional_means = model(data).mean()
+
+        # compute the variance of the dist objects
+        self.conditional_stds = model(data).stddev()
+
+
+    @property
+    def lower_bound(self):
+        return self.conditional_means - 2 * self.conditional_means
+
+
+    @property
+    def upper_bound(self):
+        return self.conditional_means + 2 * self.conditional_means
+    
+
+    def cp_metrics(self,):
+        """ currently we compute mae and mape """
+
+        mae = tf.keras.metrics.mean_absolute_error(
+            y_true=self.test_labels, y_pred=np.squeeze(self.conditional_means))
+        
+        mape = tf.keras.metrics.mean_absolute_percentage_error(
+            y_true=self.test_labels, 
+            y_pred=np.squeeze(self.conditional_means))
+
+        return acc_metrics(mae=mae, mape=mape)
+
+
+    def pl_aleatoric_uncertainty(self, val_x_axis):
+        """ plot the aleatoric uncertainty """
+
+        # val range only
+        fig, ax = plt.subplots()
+
+        # ground truth
+        ax.scatter(val_x_axis, self.test_labels, marker='o', alpha=0.4, label='ground truth')
+
+        # mean prediction
+        ax.plot(val_x_axis, self.conditional_means, color='blue', label='conditional mean')
+        ax.plot(val_x_axis, self.lower_bound, 'g--', label='95 aleatoric interval')
+        ax.plot(val_x_axis, self.upper_bound, 'g--')
+        ax.legend()
+
+        ax.set_ylabel('Revenue')        
+        ax.set_xlabel('validation')
+        ax.set_title('Aleatoric uncertainy')
+        # ax.set_ylim([0, 6])
+
+
+
+
+
+
+
+
 def show_dist(model):
     dummy_input = np.array([[0]])
     model_prior = model.layers[0]._prior(dummy_input)
@@ -264,13 +340,13 @@ def plot_history_info(history_obj, title=''):
 
     ax[1].plot(history_obj.epoch, history_obj.history[b], label=b)
     ax[1].plot(history_obj.epoch, history_obj.history[e], label=e)
-    ax[1].set_ylabel(a)
+    ax[1].set_ylabel(b)
     ax[1].set_xlabel('epochs')
     ax[1].legend()
 
     ax[2].plot(history_obj.epoch, history_obj.history[c], label=c)
     ax[2].plot(history_obj.epoch, history_obj.history[f], label=f)
-    ax[2].set_ylabel(b)
+    ax[2].set_ylabel(c)
     ax[2].set_xlabel('epochs')
     ax[2].legend()
 

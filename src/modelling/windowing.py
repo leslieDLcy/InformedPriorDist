@@ -6,7 +6,7 @@ from pipeline import ensemble_predict
 import pandas as pd
 import tqdm
 from modules import CI95_interval
-
+from modules import acc_metrics
 
 Forecast_val = namedtuple("Forecast_val", ["ground_truth", "a_forecast", "mae_value"])
 Forecast_Val_Ensemble = namedtuple("Forecast_Val_Ensemble", ["ground_truth", "ensemble_val_fcst", "mean_mae"])
@@ -176,7 +176,9 @@ class WindowGenerator():
         MAPEs = tf.keras.metrics.mean_absolute_percentage_error(
             y_true = self.val_df['revenue'], y_pred=ensemble_results)
         
-        return ensemble_results, np.mean(MAEs), np.mean(MAPEs)
+        mae, mape = np.mean(MAEs), np.mean(MAPEs)
+
+        return ensemble_results, acc_metrics(mae=mae, mape=mape)
         
         
     def cp_val_lstm_mcdropout_oneshot(self, model):
@@ -193,7 +195,7 @@ class WindowGenerator():
         mape = tf.keras.metrics.mean_absolute_percentage_error(
             y_true=self.val_df['revenue'], 
             y_pred=preds)
-        return {'mae': mae, 'mape': mape}
+        return acc_metrics(mae=mae, mape=mape)
 
 
 
