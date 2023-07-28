@@ -8,15 +8,28 @@ Codes for KTP_Croud assessment tasks.
 
 ### part 1 predictive modelling
 
-Several models themed on Bayesian or temporal-pattern are learned. Different sources of uncertainty (aleatoric or epistemic) are accounted for given the limited size of data. Refer to [predctive models](src/modelling/part1_modelling.ipynb)
+Several models themed on Bayesian or temporal-pattern are learned. Different sources of uncertainty (aleatoric or epistemic) are accounted for given the limited size of data. Refer to the file [predctive models](src/modelling/part1_modelling.ipynb)
 
 ![alt text](visualization/mixed_uncertainty.png "mixed uncertainty")
 
 ### part 2 Bayesian methods
 
-Informative priors are specified according to certain *a priori* scientific/expert knowledge. Posteriors are updated given the data. Refer to [prior elicitation](src/modelling/part2_prior_choice.ipynb).
+Informative priors are specified according to certain *a priori* scientific/expert knowledge. Posteriors are updated given the data. Refer to the file [prior elicitation](src/modelling/part2_prior_choice.ipynb).
 
 ![alt text](visualization/pp.png "informative prior")
+
+*** 
+
+## Get started
+
+For testing purpose, create a new envrionment and install dependencies.
+
+```
+$ conda create --name KTP python=3.8     
+$ conda activate KTP
+$ pip install -r requirements.txt  
+```
+
 
 
 
