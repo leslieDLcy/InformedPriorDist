@@ -140,6 +140,22 @@ def create_and_compile_aleatoric_model(input_shape, norm):
     return model
 
 
+
+def buildNcompile_linear(norm):
+    """ build and compile a simple linear model """
+    model = tf.keras.Sequential([
+        norm,
+        tf.keras.layers.Dense(1)
+    ])
+
+    model.compile(loss='mse',
+                  optimizer=tf.keras.optimizers.Adam(),
+                  metrics=['mae', 'mape']
+                  )
+    return model
+
+
+
 def build_and_compile_model(norm):
     model = tf.keras.Sequential([
         norm,

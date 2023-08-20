@@ -228,7 +228,7 @@ class AleatoricPredict:
 
 
     def pl_aleatoric_uncertainty(self, val_x_axis):
-        """ plot the aleatoric uncertainty """
+        """ plot the aleatoric uncertainty in the residual plot """
 
         # val range only
         fig, ax = plt.subplots()
